@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Три вопроса</title>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@300;400;700;900&family=Onest:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0a0a;
+    --surface: #111111;
+    --border: #1e1e1e;
+    --accent: #c8ff00;
+    --accent2: #ff3b3b;
+    --text: #f0f0f0;
+    --muted: #666;
+    --card: #141414;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Onest', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* NOISE OVERLAY */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 1000;
+    opacity: 0.4;
+  }
+
+  /* SCREENS */
+  .screen {
+    display: none;
+    min-height: 100vh;
+    padding: 40px 24px;
+    max-width: 640px;
+    margin: 0 auto;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .screen.active { display: flex; }
+
+  /* INTRO SCREEN */
+  #intro {
+    gap: 0;
+    position: relative;
+  }
+
+  .intro-label {
+    font-family: 'Unbounded', sans-serif;
+    font-size: 10px;
+    font-weight: 400;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 48px;
+    opacity: 0;
+    animation: fadeUp 0.6s ease forwards 0.2s;
+  }
+
+  .intro-title {
+    font-family: 'Unbounded', sans-serif;
+    font-size: clamp(42px, 10vw, 72px);
+    font-weight: 900;
+    line-height: 0.95;
+    letter-spacing: -0.03em;
+    margin-bottom: 32px;
+    opacity: 0;
+    animation: fadeUp 0.6s ease forwards 0.4s;
+  }
+
+  .intro-title span {
+    display: block;
+    color: var(--muted);
+    font-weight: 300;
+  }
+
+  .intro-desc {
+    font-size: 15px;
+    line-height: 1.7;
+    color: #888;
+    max-width: 400px;
+    margin-bottom: 56px;
+    opacity: 0;
+    animation: fadeUp 0.6s ease forwards 0.6s;
+  }
+
+  .intro-desc strong {
+    color: var(--text);
+    font-weight: 500;
+  }
+
+  /* BIG BUTTON */
+  .btn-start {
+    display: inline-flex;
+    align-items: center;
+    gap: 16px;
+    background: var(--accent);
+    color: #000;
+    font-family: 'Unbounded', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 20px 32px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    width: fit-content;
+    opacity: 0;
+    animation: fadeUp 0.6s ease forwards 0.8s;
+  }
+
+  .btn-start:hover {
+    background: #fff;
+    transform: translate(-3px, -3px);
+    box-shadow: 3px 3px 0 var(--accent);
+  }
+
+  .btn-arrow {
+    font-size: 18px;
+    transition: transform 0.2s ease;
+  }
+  .btn-start:hover .btn-arrow { transform: translateX(4px); }
+
+  /* DECORATIVE NUMBER */
+  .bg-number {
+    position: fixed;
+    right: -20px;
+    bottom: -40px;
+    font-family: 'Unbounded', sans-serif;
+    font-size: clamp(200px, 40vw, 360px);
+    font-weight: 900;
+    color: transparent;
+    -webkit-text-stroke: 1px #1a1a1a;
+    line-height: 1;
+    pointer-events: none;
+    user-select: none;
+    transition: all 0.4s ease;
+  }
+
+  /* QUESTION SCREEN */
+  #question {
+    gap: 0;
+    justify-content: flex-start;
+    padding-top: 60px;
+  }
+
+  .q-progress {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 48px;
+    opacity: 0;
+    animation: fadeUp 0.5s ease forwards 0.1s;
+  }
+
+  .q-progress-dot {
+    width: 32px;
+    height: 3px;
+    background: var(--border);
+    transition: background 0.3s ease;
+  }
+  .q-progress-dot.active { background: var(--accent); }
+  .q-progress-dot.done { background: #333; }
+
+  .q-number {
+    font-family: 'Unbounded', sans-serif;
+    font-size: 11px;
+    font-weight: 400;
+    letter-spacing: 0.25em;
+    color: var(--accent);
+    margin-bottom: 24px;
+    opacity: 0;
+    animation: fadeUp 0.5s ease forwards 0.2s;
+  }
+
+  .q-text {
+    font-family: 'Onest', sans-serif;
+    font-size: clamp(17px, 4vw, 22px);
+    font-weight: 400;
+    line-height: 1.55;
+    color: var(--text);
+    margin-bottom: 12px;
+    opacity: 0;
+    animation: fadeUp 0.5s ease forwards 0.3s;
+  }
+
+  .q-highlight {
+    display: inline-block;
+    background: #1a1a1a;
+    border-left: 3px solid var(--accent);
+    padding: 12px 16px;
+    margin: 16px 0 36px;
+    font-size: 14px;
+    color: #aaa;
+    line-height: 1.6;
+    opacity: 0;
+    animation: fadeUp 0.5s ease forwards 0.4s;
+    width: 100%;
+  }
+
+  .q-main {
+    font-family: 'Unbounded', sans-serif;
+    font-size: clamp(16px, 4vw, 20px);
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 28px;
+    opacity: 0;
+    animation: fadeUp 0.5s ease forwards 0.5s;
+  }
+
+  /* OPTIONS */
+  .options {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 40px;
+    opacity: 0;
+    animation: fadeUp 0.5s ease forwards 0.6s;
+  }
+
+  .option {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 20px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    font-size: 14px;
+    color: #999;
+    font-family: 'Onest', sans-serif;
+    text-align: left;
+  }
+
+  .option:hover {
+    border-color: #333;
+    color: var(--text);
+    background: #1a1a1a;
+  }
+
+  .option.selected {
+    border-color: var(--accent);
+    color: var(--text);
+    background: rgba(200, 255, 0, 0.05);
+  }
+
+  .option-marker {
+    width: 20px;
+    height: 20px;
+    border: 1.5px solid #333;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.15s ease;
+    font-size: 10px;
+  }
+
+  .option.selected .option-marker {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #000;
+  }
+
+  .btn-next {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    background: transparent;
+    color: var(--text);
+    font-family: 'Unbounded', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    padding: 16px 24px;
+    border: 1px solid #2a2a2a;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .btn-next.visible {
+    opacity: 1;
+    pointer-events: all;
+  }
+
+  .btn-next:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  /* RESULTS SCREEN */
+  #results {
+    justify-content: flex-start;
+    padding-top: 60px;
+    gap: 0;
+  }
+
+  .results-label {
+    font-family: 'Unbounded', sans-serif;
+    font-size: 10px;
+    letter-spacing: 0.3em;
+    color: var(--accent);
+    margin-bottom: 24px;
+    opacity: 0;
+    animation: fadeUp 0.5s ease forwards 0.1s;
+  }
+
+  .results-title {
+    font-family: 'Unbounded', sans-serif;
+    font-size: clamp(28px, 7vw, 48px);
+    font-weight: 900;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    margin-bottom: 48px;
+    opacity: 0;
+    animation: fadeUp 0.5s ease forwards 0.2s;
+  }
+
+  .result-item {
+    border-top: 1px solid var(--border);
+    padding: 24px 0;
+    opacity: 0;
+    animation: fadeUp 0.5s ease forwards;
+  }
+  .result-item:nth-child(1) { animation-delay: 0.3s; }
+  .result-item:nth-child(2) { animation-delay: 0.45s; }
+  .result-item:nth-child(3) { animation-delay: 0.6s; }
+  .result-item:last-child { border-bottom: 1px solid var(--border); }
+
+  .result-scenario {
+    font-family: 'Unbounded', sans-serif;
+    font-size: 10px;
+    font-weight: 400;
+    letter-spacing: 0.2em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+
+  .result-answer {
+    font-size: 18px;
+    font-weight: 500;
+    margin-bottom: 16px;
+  }
+  .result-answer.yes { color: var(--accent); }
+  .result-answer.no { color: var(--accent2); }
+  .result-answer.maybe-yes { color: #88cc00; }
+  .result-answer.maybe-no { color: #ff7a7a; }
+
+  .result-bar-wrap {
+    height: 3px;
+    background: var(--border);
+    width: 100%;
+    overflow: hidden;
+  }
+
+  .result-bar {
+    height: 100%;
+    background: var(--accent);
+    width: 0%;
+    transition: width 1s ease 0.8s;
+  }
+  .result-bar.no-bar { background: var(--accent2); }
+
+  .reveal-box {
+    margin-top: 48px;
+    padding: 28px;
+    background: #0f0f0f;
+    border: 1px solid #1e1e1e;
+    border-left: 3px solid var(--accent);
+    opacity: 0;
+    animation: fadeUp 0.6s ease forwards 1.2s;
+  }
+
+  .reveal-box-title {
+    font-family: 'Unbounded', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+
+  .reveal-box p {
+    font-size: 14px;
+    line-height: 1.75;
+    color: #888;
+  }
+
+  .reveal-box strong {
+    color: var(--text);
+    font-weight: 500;
+  }
+
+  /* ANIMATIONS */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* RESET LINK */
+  .reset-btn {
+    margin-top: 40px;
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-family: 'Onest', sans-serif;
+    font-size: 13px;
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 4px;
+    opacity: 0;
+    animation: fadeUp 0.5s ease forwards 1.4s;
+  }
+  .reset-btn:hover { color: var(--text); }
+</style>
+</head>
+<body>
+
+<div class="bg-number" id="bgNumber">?</div>
+
+<!-- INTRO -->
+<div class="screen active" id="intro">
+  <div class="intro-label">Эксперимент · Поведенческая экономика</div>
+  <h1 class="intro-title">
+    Три
+    <span>вопроса</span>
+  </h1>
+  <p class="intro-desc">
+    Отвечай <strong>быстро</strong> и <strong>честно</strong> — первая реакция важнее обдуманного ответа.<br><br>
+    Никаких правильных и неправильных ответов нет.
+  </p>
+  <button class="btn-start" onclick="startQuiz()">
+    Начать <span class="btn-arrow">→</span>
+  </button>
+</div>
+
+<!-- QUESTION -->
+<div class="screen" id="question">
+  <div class="q-progress">
+    <div class="q-progress-dot active" id="dot0"></div>
+    <div class="q-progress-dot" id="dot1"></div>
+    <div class="q-progress-dot" id="dot2"></div>
+  </div>
+
+  <div class="q-number" id="qNumber">ВОПРОС 01 / 03</div>
+  <p class="q-text" id="qText"></p>
+  <div class="q-highlight" id="qHighlight"></div>
+  <p class="q-main" id="qMain"></p>
+
+  <div class="options" id="optionsContainer"></div>
+
+  <button class="btn-next" id="btnNext" onclick="nextQuestion()">
+    Далее <span>→</span>
+  </button>
+</div>
+
+<!-- RESULTS -->
+<div class="screen" id="results">
+  <div class="results-label">Результаты · Твои ответы</div>
+  <h2 class="results-title">Посмотри<br>внимательно</h2>
+
+  <div id="resultsContainer"></div>
+
+  <div class="reveal-box">
+    <div class="reveal-box-title">Заметил кое-что?</div>
+    <p>Во всех трёх вопросах <strong>сумма одна — 4000 рублей</strong>. Плагин один и тот же. Ты один и тот же человек.<br><br>
+    Но твои ответы, скорее всего, отличались. Это и есть <strong>ментальный учёт</strong> — мозг кладёт деньги в разные мысленные «кошельки» и тратит их по разным правилам.</p>
+  </div>
+
+  <button class="reset-btn" onclick="resetQuiz()">Пройти заново</button>
+</div>
+
+<script>
+  const questions = [
+    {
+      number: "ВОПРОС 01 / 03",
+      text: "Представь: ты сдал проект, клиент остался доволен и неожиданно перевёл тебе",
+      highlight: "4 000 рублей сверху — просто как благодарность, сверх договора.",
+      main: "В тот же день ты видишь плагин для Figma за 4000, который давно хотел. Берёшь?",
+      scenario: "Неожиданный бонус от клиента",
+      bgNum: "1"
+    },
+    {
+      number: "ВОПРОС 02 / 03",
+      text: "Другая ситуация. Ты получил обычную зарплату и специально отложил",
+      highlight: "4 000 рублей на «рабочие нужды» — заранее, осознанно.",
+      main: "Тот же плагин, те же 4000. Берёшь?",
+      scenario: "Отложенные из зарплаты",
+      bgNum: "2"
+    },
+    {
+      number: "ВОПРОС 03 / 03",
+      text: "Ты ждал кэшбэк за ноутбук —",
+      highlight: "4 000 рублей. Но банк отказал. Деньги не вернули. Обидно.",
+      main: "Настроение так себе. И тут снова тот же плагин за 4000. Берёшь?",
+      scenario: "Несостоявшийся кэшбэк",
+      bgNum: "3"
+    }
+  ];
+
+  const optionLabels = [
+    { text: "Да, однозначно", cls: "yes" },
+    { text: "Скорее да", cls: "maybe-yes" },
+    { text: "Скорее нет", cls: "maybe-no" },
+    { text: "Нет, не куплю", cls: "no" }
+  ];
+
+  let current = 0;
+  let answers = [];
+  let selected = null;
+
+  function startQuiz() {
+    showScreen('question');
+    renderQuestion(0);
+  }
+
+  function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+  }
+
+  function renderQuestion(idx) {
+    const q = questions[idx];
+    selected = null;
+
+    // update bg number
+    document.getElementById('bgNumber').textContent = q.bgNum;
+
+    // progress dots
+    for (let i = 0; i < 3; i++) {
+      const dot = document.getElementById('dot' + i);
+      dot.className = 'q-progress-dot';
+      if (i < idx) dot.classList.add('done');
+      else if (i === idx) dot.classList.add('active');
+    }
+
+    // reset animations by cloning trick
+    const elements = ['qNumber', 'qText', 'qHighlight', 'qMain', 'optionsContainer'];
+    elements.forEach(id => {
+      const el = document.getElementById(id);
+      el.style.opacity = '0';
+      el.style.transform = 'translateY(20px)';
+    });
+
+    setTimeout(() => {
+      document.getElementById('qNumber').textContent = q.number;
+      document.getElementById('qText').textContent = q.text;
+      document.getElementById('qHighlight').textContent = q.highlight;
+      document.getElementById('qMain').textContent = q.main;
+
+      const container = document.getElementById('optionsContainer');
+      container.innerHTML = '';
+      optionLabels.forEach((opt, i) => {
+        const btn = document.createElement('button');
+        btn.className = 'option';
+        btn.innerHTML = `<span class="option-marker"></span>${opt.text}`;
+        btn.onclick = () => selectOption(i, opt.cls);
+        container.appendChild(btn);
+      });
+
+      // animate in
+      elements.forEach((id, i) => {
+        setTimeout(() => {
+          const el = document.getElementById(id);
+          el.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+          el.style.opacity = '1';
+          el.style.transform = 'translateY(0)';
+        }, i * 100);
+      });
+
+      document.getElementById('btnNext').classList.remove('visible');
+    }, 100);
+  }
+
+  function selectOption(idx, cls) {
+    selected = { idx, cls, text: optionLabels[idx].text };
+    document.querySelectorAll('.option').forEach((opt, i) => {
+      opt.classList.toggle('selected', i === idx);
+      const marker = opt.querySelector('.option-marker');
+      marker.textContent = i === idx ? '✓' : '';
+    });
+    document.getElementById('btnNext').classList.add('visible');
+  }
+
+  function nextQuestion() {
+    if (selected === null) return;
+    answers.push({ ...selected, scenario: questions[current].scenario });
+
+    if (current < 2) {
+      current++;
+      renderQuestion(current);
+    } else {
+      showResults();
+    }
+  }
+
+  function showResults() {
+    showScreen('results');
+    document.getElementById('bgNumber').textContent = '!';
+
+    const container = document.getElementById('resultsContainer');
+    container.innerHTML = '';
+
+    answers.forEach((ans, i) => {
+      const isPositive = ans.cls === 'yes' || ans.cls === 'maybe-yes';
+      const barWidth = ans.cls === 'yes' ? 100 : ans.cls === 'maybe-yes' ? 65 : ans.cls === 'maybe-no' ? 35 : 5;
+
+      const item = document.createElement('div');
+      item.className = 'result-item';
+      item.style.animationDelay = (0.3 + i * 0.15) + 's';
+      item.innerHTML = `
+        <div class="result-scenario">Сценарий ${i + 1} · ${ans.scenario}</div>
+        <div class="result-answer ${ans.cls}">${ans.text}</div>
+        <div class="result-bar-wrap">
+          <div class="result-bar ${isPositive ? '' : 'no-bar'}" style="width:0%" data-width="${barWidth}%"></div>
+        </div>
+      `;
+      container.appendChild(item);
+    });
+
+    // animate bars after a delay
+    setTimeout(() => {
+      document.querySelectorAll('.result-bar').forEach(bar => {
+        bar.style.width = bar.dataset.width;
+      });
+    }, 900);
+  }
+
+  function resetQuiz() {
+    current = 0;
+    answers = [];
+    selected = null;
+    document.getElementById('bgNumber').textContent = '?';
+    showScreen('intro');
+  }
+</script>
+</body>
+</html>
