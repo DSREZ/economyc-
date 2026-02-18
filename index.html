@@ -473,6 +473,22 @@
   </button>
 </div>
 
+<!-- REVEAL PAUSE SCREEN -->
+<div class="screen" id="reveal">
+  <div class="intro-label" style="opacity:0;animation:fadeUp 0.5s ease forwards 0.1s;">Готово · Ты ответил на все три</div>
+  <h2 class="intro-title" style="opacity:0;animation:fadeUp 0.5s ease forwards 0.3s;">
+    Стоп.
+    <span>Слушай</span>
+  </h2>
+  <p class="intro-desc" style="opacity:0;animation:fadeUp 0.5s ease forwards 0.5s;">
+    Сейчас ведущий объяснит, что происходило в этих трёх вопросах.<br><br>
+    Когда он скажет — нажми кнопку и увидишь свои ответы.
+  </p>
+  <button class="btn-start" style="opacity:0;animation:fadeUp 0.5s ease forwards 0.7s;" onclick="showResults()">
+    Показать мои ответы <span class="btn-arrow">→</span>
+  </button>
+</div>
+
 <!-- RESULTS -->
 <div class="screen" id="results">
   <div class="results-label">Результаты · Твои ответы</div>
@@ -609,7 +625,7 @@
       current++;
       renderQuestion(current);
     } else {
-      showResults();
+      showScreen('reveal');
     }
   }
 
